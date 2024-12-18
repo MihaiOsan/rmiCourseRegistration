@@ -1,0 +1,6 @@
+17651 LU 1620 1750 Cicortas Tehnologii workflow
+17652 MA 1800 1930 Dragan Modele si metode formale in ingineria software
+17653 MI 1800 1930 Sandru Procese si management in ingineria software
+17654 MI 1800 1930 Fortis Metode distribuite si tehnologii bazate pe XML
+17655 JO 1800 1930 Mindruta Arhitecturi pentru sisteme software
+17656 VI 1800 1930 Petcu Sisteme distribuite
