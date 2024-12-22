@@ -36,7 +36,7 @@ public class Logger extends UnicastRemoteObject implements RILogger{
      * @param command Comanda primită
      * @param message Mesajul pentru logare
      */
-    public void log(String clientId, String command, String message) {
+    public synchronized void log(String clientId, String command, String message) {
         synchronized (Logger.class) {
             try (FileWriter fw = new FileWriter(logFile, true);
                  PrintWriter pw = new PrintWriter(fw)) {
