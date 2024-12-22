@@ -3,6 +3,7 @@
  */
 
 
+import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
@@ -13,9 +14,9 @@ import java.util.ArrayList;
 
 /**
  * Clasa reprezinta un nod logic responsabil sa ofere metode de acces
- * de nivel inalt la date, utilizand mecanismul RMI. 
- * Depinde de functionalitatile nodului datelor care este, de asemenea, 
- * disponibil prin mecanism RMI. Actioneaza astfel ca o punte intre 
+ * de nivel inalt la date, utilizand mecanismul RMI.
+ * Depinde de functionalitatile nodului datelor care este, de asemenea,
+ * disponibil prin mecanism RMI. Actioneaza astfel ca o punte intre
  * nodurile clienti si nodul datelor.
  */
 public class Logic extends UnicastRemoteObject implements RILogic {
@@ -40,6 +41,9 @@ public class Logic extends UnicastRemoteObject implements RILogic {
         this.rmiDataNode = (RIData) Naming.lookup(sDataName);
     }
 
+
+
+
     /**
      * Lista tuturor studentilor.
      *
@@ -47,6 +51,7 @@ public class Logic extends UnicastRemoteObject implements RILogic {
      */
     public String getAllStudents()
                   throws RemoteException {
+
         // Preluarea informatiilor referitoare la toti studentii.
         ArrayList vStudent = this.rmiDataNode.getAllStudentRecords();
 
@@ -65,6 +70,7 @@ public class Logic extends UnicastRemoteObject implements RILogic {
      */
     public String getAllCourses()
                   throws RemoteException {
+
         // Preluarea informatiilor referitoare la toate cursurile.
         ArrayList vCourse = this.rmiDataNode.getAllCourseRecords();
 
@@ -84,7 +90,8 @@ public class Logic extends UnicastRemoteObject implements RILogic {
      */
     public String getRegisteredStudents(String sCID)
                   throws RemoteException {
-        // Preluarea listei studentilor inregistrati la cursul precizat prin ID curs.
+
+
         Course objCourse = this.rmiDataNode.getCourseRecord(sCID);
         if (objCourse == null) {
             return "ID curs inexistent";
@@ -96,7 +103,7 @@ public class Logic extends UnicastRemoteObject implements RILogic {
         for (int i=0; i<vStudent.size(); i++) {
             sReturn += (i == 0 ? "" : "\n") + ((Student) vStudent.get(i)).toString();
         }
-        return sReturn;
+        return vStudent.size()==0 ? "niciun student inregistrat la acest curs":sReturn;
     }
 
     /**
@@ -130,9 +137,11 @@ public class Logic extends UnicastRemoteObject implements RILogic {
      */
     public String getCompletedCourses(String sSID)
                   throws RemoteException {
+
         // Obtinerea listei cursurilor absolvite de student.
         Student objStudent = this.rmiDataNode.getStudentRecord(sSID);
         if (objStudent == null) {
+
             return "ID student inexistent";
         }
         ArrayList vCourseID = objStudent.getCompletedCourses();
@@ -148,7 +157,7 @@ public class Logic extends UnicastRemoteObject implements RILogic {
     }
 
     /**
-     * Inregistrare student la un curs. 
+     * Inregistrare student la un curs.
      * Conflictele se verifica inainte de realizarea inregistrarii.
      *
      * @param sSID un sir reprezentand ID student
@@ -158,12 +167,15 @@ public class Logic extends UnicastRemoteObject implements RILogic {
     public String makeARegistration(String sSID, String sCID)
                   throws RemoteException {
         // Preluare informatii student si curs.
+
         Student objStudent = this.rmiDataNode.getStudentRecord(sSID);
         Course objCourse = this.rmiDataNode.getCourseRecord(sCID);
         if (objStudent == null) {
+
             return "ID student inexistent";
         }
         if (objCourse == null) {
+
             return "ID curs inexistent";
         }
 
@@ -172,6 +184,7 @@ public class Logic extends UnicastRemoteObject implements RILogic {
         ArrayList vCourse = objStudent.getRegisteredCourses();
         for (int i=0; i<vCourse.size(); i++) {
             if (((Course) vCourse.get(i)).conflicts(objCourse)) {
+
                 return "Conflicte de inregistrare la curs";
             }
         }
@@ -182,28 +195,54 @@ public class Logic extends UnicastRemoteObject implements RILogic {
     }
 
     /**
-     * Creare nod logic si lansarea lui. 
+     * Creare nod logic si lansarea lui.
      */
     public static void main(String args[]) {
         // Verificarea numarului de parametri.
-        if (args.length != 0) {
+        if (args.length < 1) {
             System.out.println("Numar incorect de parametrii");
-            System.out.println("Utilizare: java Logic");
+            System.err.println("Utilizare: java Logic <Adresa_IP_Data>");
             System.exit(1);
         }
 
         try {
+
+            String dataIp = args[0];
+            String loggerIP = args.length==2? args[1] : "null";
+            String dataUrl = "//" + dataIp + "/Data";
+            String loggerUrl  = "//" + loggerIP + "/Logger";
+
+            InetAddress localHost = InetAddress.getLocalHost();
+            String ipAddress = NetworkUtils.getNonLoopbackAddress();
+
+            // Afișează informații despre mașina locală
+            System.out.println("Nodul Logic rulează la:");
+            System.out.println("Adresa IP: " + ipAddress);
+            System.out.println("Nodul Logic va comunica cu Data la adresa: " + dataUrl);
+
+            if (!loggerIP.equals("null"))
+            {
+                System.out.println("Nodul Logic va comunica cu Logger la adresa: " + loggerUrl);
+            }
+
+
+
             // Crearea unui nod logic si publicarea sa prin RMI.
-            Logic objLogic = new Logic(DATA_NAME);
-            Naming.rebind(LOGIC_NAME, objLogic);
+            Logic objLogic = new Logic(dataUrl);
+            String logicUrl = "//" + ipAddress + "/" + LOGIC_NAME;
+            Naming.bind(logicUrl, objLogic);
+
             System.out.println("Nodul logic este gata de servire.");
+
+            System.out.println("Adresa la care clientul trebuie să se conecteze: " + logicUrl);
 
             // Asteptare intrerupere de la utilizator.
             System.out.println("Apasati Enter pentru terminare.");
+
             System.in.read();
 
             // Eliberare resurse si terminare.
-            Naming.unbind(LOGIC_NAME);
+            Naming.unbind("//192.168.100.81/" + LOGIC_NAME);
             System.out.println("Nodul logic se dezactiveaza. Apasati Ctrl-C daca dureaza prea mult.");
         }
         catch (java.rmi.ConnectException e) {
